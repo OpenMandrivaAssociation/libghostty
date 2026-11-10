@@ -19,7 +19,9 @@ Group:		System/Libraries
 Source0:	https://release.files.ghostty.org/libghostty-vt/%{version}/libghostty-vt-%{version}.tar.gz
 # Unpacked Zig packages for an offline build. zig --system reads this directory.
 Source1:	https://release.files.ghostty.org/libghostty-vt/%{version}/libghostty-vt-%{version}-deps.tar.gz
-# zig 0.17 ships a broken amxtf32intrin.h. Skip it while compiling SIMD code.
+# zig 0.17 ships a broken amxtf32intrin.h, and on aarch64 its arm_neon.h
+# declares bf16 builtins that do not exist. The patch skips the x86 header
+# and disables Highway's NEON_BF16 target. Baseline NEON stays on.
 Patch0:		libghostty-vt-%{version}-zig-amx-tf32.patch
 BuildRequires:	zig >= 0.17.0
 BuildRequires:	zig < 0.18
@@ -67,9 +69,15 @@ rm -f %{buildroot}%{_libdir}/libghostty-vt.a \
 	%{buildroot}%{_libdir}/pkgconfig/libghostty-vt-static.pc
 
 %files
-%license LICENSE.ghostty LICENSE.highway LICENSE.highway-bsd3 \
-	LICENSE.wuffs-apache LICENSE.wuffs-mit LICENSE.uucode \
-	LICENSE.translate-c LICENSE.simdutf-apache LICENSE.simdutf-mit
+%license LICENSE.ghostty
+%license LICENSE.highway
+%license LICENSE.highway-bsd3
+%license LICENSE.wuffs-apache
+%license LICENSE.wuffs-mit
+%license LICENSE.uucode
+%license LICENSE.translate-c
+%license LICENSE.simdutf-apache
+%license LICENSE.simdutf-mit
 %{_libdir}/libghostty-vt.so.1*
 
 %files -n %{devname}

@@ -1,3 +1,24 @@
+diff -ruN a/pkg/highway/build.zig b/pkg/highway/build.zig
+--- a/pkg/highway/build.zig	2026-11-06 23:28:06.000000000 +0100
++++ b/pkg/highway/build.zig	2026-11-10 02:27:16.916848100 +0100
+@@ -121,6 +121,16 @@
+         lib.root_module.stack_protector = false;
+     }
+ 
++    // OpenMandriva zig 0.17 ships a broken amxtf32intrin.h. Defining the
++    // include guard skips it. immintrin.h pulls it in unconditionally.
++    try flags.append(b.allocator, "-D__AMX_TF32INTRIN_H");
++
++    // zig 0.17's arm_neon.h declares bf16 helpers whose builtins are
++    // missing. HWY_NEON_BF16 is (1LL << 26). Baseline NEON stays on.
++    if (target.result.cpu.arch == .aarch64) {
++        try flags.append(b.allocator, "-DHWY_DISABLED_TARGETS=(1LL<<26)");
++    }
++
+     lib.root_module.addCSourceFiles(.{ .flags = flags.items, .files = &.{
+         "src/cpp/abort.cc",
+         "src/cpp/per_target.cc",
+diff -ruN a/pkg/simdutf/build.zig b/pkg/simdutf/build.zig
 --- a/pkg/simdutf/build.zig	2026-11-06 23:28:06.000000000 +0100
 +++ b/pkg/simdutf/build.zig	2026-11-09 19:14:40.588214996 +0100
 @@ -42,6 +42,10 @@
@@ -11,19 +32,7 @@
      // Only linked statically into libghostty-vt and the app: export nothing.
      try flags.append(b.allocator, "-fvisibility=hidden");
  
---- a/pkg/highway/build.zig	2026-11-06 23:28:06.000000000 +0100
-+++ b/pkg/highway/build.zig	2026-11-09 19:14:40.588214996 +0100
-@@ -121,6 +121,10 @@
-         lib.root_module.stack_protector = false;
-     }
- 
-+    // OpenMandriva zig 0.17 ships a broken amxtf32intrin.h. Defining the
-+    // include guard skips it. immintrin.h pulls it in unconditionally.
-+    try flags.append(b.allocator, "-D__AMX_TF32INTRIN_H");
-+
-     lib.root_module.addCSourceFiles(.{ .flags = flags.items, .files = &.{
-         "src/cpp/abort.cc",
-         "src/cpp/per_target.cc",
+diff -ruN a/pkg/wuffs/build.zig b/pkg/wuffs/build.zig
 --- a/pkg/wuffs/build.zig	2026-11-06 23:28:06.000000000 +0100
 +++ b/pkg/wuffs/build.zig	2026-11-09 19:14:40.888219603 +0100
 @@ -64,7 +64,7 @@
@@ -46,9 +55,23 @@
              // Disable ubsan on Windows to avoid undefined __ubsan_handle_*
              // references: Zig's ubsan runtime can't be bundled on Windows
              // (its /exclude-symbols directives break the MSVC linker), so
+diff -ruN a/src/build/SharedDeps.zig b/src/build/SharedDeps.zig
 --- a/src/build/SharedDeps.zig	2026-11-06 23:28:06.000000000 +0100
-+++ b/src/build/SharedDeps.zig	2026-11-09 19:14:40.592215058 +0100
-@@ -975,6 +975,10 @@
++++ b/src/build/SharedDeps.zig	2026-11-10 02:27:16.916848100 +0100
+@@ -949,6 +949,12 @@
+             b.allocator,
+             b.fmt("-DHWY_DISABLED_TARGETS={}", .{HWY_DISABLED_TARGETS}),
+         );
++        // zig 0.17's arm_neon.h declares bf16 helpers whose builtins are
++        // missing. HWY_NEON_BF16 is (1LL << 26). Baseline NEON stays on.
++        if (target.result.cpu.arch == .aarch64) try flags.append(
++            b.allocator,
++            "-DHWY_DISABLED_TARGETS=(1LL<<26)",
++        );
+ 
+         // MSVC requires explicit std specification otherwise these
+         // are guarded, at least on Windows 2025. Doing it unconditionally
+@@ -975,6 +981,10 @@
              "-DSIMDUTF_NO_LIBCXX",
          );
  
