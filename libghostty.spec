@@ -2,23 +2,32 @@
 %define devname %mklibname ghostty-vt -d
 
 Name:		%{libname}
-Version:	1.4.0
+# 1.4.0 was built from the Ghostty application tarball. libghostty-vt 1.0
+# is the library's own first stable release, and that version sorts older.
+Epoch:		1
+Version:	1.0.0
 Release:	1
 Summary:	Ghostty terminal emulation library
-Url:		https://ghostty.org/
-License:	MIT and Apache-2.0 and CC0-1.0
+Url:		https://lib.ghostty.org/vt/
+# libghostty-vt: MIT
+# highway: Apache-2.0 OR BSD-3-Clause
+# simdutf, wuffs: Apache-2.0 OR MIT
+# uucode: MIT AND Unicode-3.0
+# translate-c: MIT
+License:	MIT AND (Apache-2.0 OR BSD-3-Clause) AND (Apache-2.0 OR MIT) AND (MIT AND Unicode-3.0)
 Group:		System/Libraries
-Source0:	https://release.files.ghostty.org/%{version}/ghostty-%{version}.tar.gz
-# Extracted zig packages, named by the bare hash. zig --system rejects tarballs.
-Source1:	ghostty-%{version}-zig-packages.tar.xz
-# zig 0.17 ships a broken amxtf32intrin.h. Skip it while compiling wuffs.
-Patch0:		ghostty-%{version}-zig-amx-tf32.patch
+Source0:	https://release.files.ghostty.org/libghostty-vt/%{version}/libghostty-vt-%{version}.tar.gz
+# Unpacked Zig packages for an offline build. zig --system reads this directory.
+Source1:	https://release.files.ghostty.org/libghostty-vt/%{version}/libghostty-vt-%{version}-deps.tar.gz
+# zig 0.17 ships a broken amxtf32intrin.h. Skip it while compiling SIMD code.
+Patch0:		libghostty-vt-%{version}-zig-amx-tf32.patch
 BuildRequires:	zig >= 0.17.0
+BuildRequires:	zig < 0.18
 
 %description
-Shared terminal emulation library from Ghostty. KDE terminal
-applications link this library. The Ghostty GTK application is not
-included.
+Shared terminal emulation library from Ghostty, with a stable C ABI.
+KDE terminal applications and other programs link this library. The
+Ghostty GTK application is not included.
 
 %package -n %{devname}
 Summary:	Development files for %{libname}
@@ -26,47 +35,45 @@ Group:		Development/C
 Requires:	%{libname} = %{EVRD}
 
 %description -n %{devname}
-Header files for %{libname}.
+Header files, pkg-config metadata, and the CMake package for %{libname}.
 
 %prep
-%autosetup -p1 -n ghostty-%{version} -a 1
+%autosetup -p1 -n libghostty-vt-%{version} -a 1
 cp -a LICENSE LICENSE.ghostty
-cp -a p/N-V-__8AAP5JWgCGP_AD0teWpa4krRvE9VPZzvviGdbmN4jI/LICENSE LICENSE.wuffs
-cp -a p/N-V-__8AADYiAAB_80AWnH1AxXC0tql9thT-R-DYO1gBqTLc/LICENSE LICENSE.pixels
-cp -a p/uucode-0.2.0-ZZjBPoGFVgCiflJNFc6Io8xzC67B6PA5bUkk4LT0kCxg/LICENSE.md LICENSE.uucode
+cp -a libghostty-vt-%{version}-deps/N-V-__8AAGmZhABbsPJLfbqrh6JTHsXhY6qCaLAQyx25e0XE/LICENSE LICENSE.highway
+cp -a libghostty-vt-%{version}-deps/N-V-__8AAGmZhABbsPJLfbqrh6JTHsXhY6qCaLAQyx25e0XE/LICENSE-BSD3 LICENSE.highway-bsd3
+cp -a libghostty-vt-%{version}-deps/N-V-__8AAP5JWgCGP_AD0teWpa4krRvE9VPZzvviGdbmN4jI/LICENSE-APACHE LICENSE.wuffs-apache
+cp -a libghostty-vt-%{version}-deps/N-V-__8AAP5JWgCGP_AD0teWpa4krRvE9VPZzvviGdbmN4jI/LICENSE-MIT LICENSE.wuffs-mit
+cp -a libghostty-vt-%{version}-deps/uucode-0.2.0-ZZjBPm6FVgBcY-79AHV8ckQj86z0JwOyVyj89VeZrEiv/LICENSE.md LICENSE.uucode
+cp -a libghostty-vt-%{version}-deps/translate_c-2.0.0-Q_BUWltOBwBYABF84EUL208pIFeUIwbBs29FmVBaafN5/LICENSE LICENSE.translate-c
+cp -a pkg/simdutf/vendor/LICENSE-APACHE LICENSE.simdutf-apache
+cp -a pkg/simdutf/vendor/LICENSE-MIT LICENSE.simdutf-mit
 
 %install
-# SIMD stays off: zig 0.17 cannot compile the bundled simdutf and highway.
-# Ghostty bakes DESTDIR into prefix and hardcodes libdir as ${prefix}/lib.
+# SIMD stays on. The 1.0 packaging notes say a general-purpose package
+# should keep the bundled simdutf and highway paths.
+# An empty global cache makes Zig use only the --system packages.
 DESTDIR="%{buildroot}" \
 ZIG_GLOBAL_CACHE_DIR="%{_builddir}/zig-global-cache" \
 zig build \
 	--cache-dir "%{_builddir}/zig-local-cache" \
-	--system "$PWD/p" \
+	--system "%{_builddir}/libghostty-vt-%{version}/libghostty-vt-%{version}-deps" \
 	--build-id=sha1 \
-	-Demit-lib-vt \
-	-Dsimd=false \
-	-Demit-themes=false \
-	-Demit-terminfo=false \
-	-Dapp-runtime=none \
-	-Di18n=false \
 	-Doptimize=ReleaseFast \
 	-Dcpu=baseline \
-	-Dversion-string=%{version} \
 	--prefix %{_prefix} \
 	--prefix-lib-dir %{_lib}
-sed -i \
-	-e 's|^prefix=.*|prefix=%{_prefix}|' \
-	-e 's|^libdir=.*|libdir=%{_libdir}|' \
-	%{buildroot}%{_datadir}/pkgconfig/libghostty-vt.pc
 rm -f %{buildroot}%{_libdir}/libghostty-vt.a \
-	%{buildroot}%{_datadir}/pkgconfig/libghostty-vt-static.pc
+	%{buildroot}%{_libdir}/pkgconfig/libghostty-vt-static.pc
 
 %files
-%license LICENSE.ghostty LICENSE.wuffs LICENSE.pixels LICENSE.uucode
-%{_libdir}/libghostty-vt.so.0*
+%license LICENSE.ghostty LICENSE.highway LICENSE.highway-bsd3 \
+	LICENSE.wuffs-apache LICENSE.wuffs-mit LICENSE.uucode \
+	LICENSE.translate-c LICENSE.simdutf-apache LICENSE.simdutf-mit
+%{_libdir}/libghostty-vt.so.1*
 
 %files -n %{devname}
 %{_includedir}/ghostty
 %{_libdir}/libghostty-vt.so
-%{_datadir}/pkgconfig/libghostty-vt.pc
+%{_libdir}/pkgconfig/libghostty-vt.pc
+%{_libdir}/cmake/ghostty-vt
