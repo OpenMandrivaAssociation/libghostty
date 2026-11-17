@@ -5,7 +5,7 @@ Name:		%{libname}
 # 1.4.0 was built from the Ghostty application tarball. libghostty-vt 1.0
 # is the library's own first stable release, and that version sorts older.
 Epoch:		1
-Version:	1.0.0
+Version:	1.0.1
 Release:	1
 Summary:	Ghostty terminal emulation library
 Url:		https://lib.ghostty.org/vt/

@@ -1,6 +1,6 @@
-diff -ruN a/pkg/highway/build.zig b/pkg/highway/build.zig
---- a/pkg/highway/build.zig	2026-11-06 23:28:06.000000000 +0100
-+++ b/pkg/highway/build.zig	2026-11-10 02:27:16.916848100 +0100
+diff -ruN libghostty-vt-1.0.1/pkg/highway/build.zig libghostty-vt-1.0.1-patched/pkg/highway/build.zig
+--- a/pkg/highway/build.zig	2026-11-11 20:36:05.000000000 +0100
++++ b/pkg/highway/build.zig	2026-11-17 04:40:18.645684549 +0100
 @@ -121,6 +121,16 @@
          lib.root_module.stack_protector = false;
      }
@@ -18,23 +18,23 @@ diff -ruN a/pkg/highway/build.zig b/pkg/highway/build.zig
      lib.root_module.addCSourceFiles(.{ .flags = flags.items, .files = &.{
          "src/cpp/abort.cc",
          "src/cpp/per_target.cc",
-diff -ruN a/pkg/simdutf/build.zig b/pkg/simdutf/build.zig
---- a/pkg/simdutf/build.zig	2026-11-06 23:28:06.000000000 +0100
-+++ b/pkg/simdutf/build.zig	2026-11-09 19:14:40.588214996 +0100
-@@ -42,6 +42,10 @@
-     // (See root Ghostty build.zig on why we do this)
-     try flags.append(b.allocator, "-DSIMDUTF_IMPLEMENTATION_ICELAKE=0");
+diff -ruN libghostty-vt-1.0.1/pkg/simdutf/build.zig libghostty-vt-1.0.1-patched/pkg/simdutf/build.zig
+--- a/pkg/simdutf/build.zig	2026-11-11 20:36:05.000000000 +0100
++++ b/pkg/simdutf/build.zig	2026-11-17 04:40:18.668136276 +0100
+@@ -41,6 +41,10 @@
+     // Only linked statically into libghostty-vt and the app: export nothing.
+     try flags.append(b.allocator, "-fvisibility=hidden");
  
 +    // OpenMandriva zig 0.17 ships a broken amxtf32intrin.h. Defining the
 +    // include guard skips it. immintrin.h pulls it in unconditionally.
 +    try flags.append(b.allocator, "-D__AMX_TF32INTRIN_H");
 +
-     // Only linked statically into libghostty-vt and the app: export nothing.
-     try flags.append(b.allocator, "-fvisibility=hidden");
- 
-diff -ruN a/pkg/wuffs/build.zig b/pkg/wuffs/build.zig
---- a/pkg/wuffs/build.zig	2026-11-06 23:28:06.000000000 +0100
-+++ b/pkg/wuffs/build.zig	2026-11-09 19:14:40.888219603 +0100
+     // Fixes linker issues for release builds missing ubsanitizer symbols
+     try flags.appendSlice(b.allocator, &.{
+         "-fno-sanitize=undefined",
+diff -ruN libghostty-vt-1.0.1/pkg/wuffs/build.zig libghostty-vt-1.0.1-patched/pkg/wuffs/build.zig
+--- a/pkg/wuffs/build.zig	2026-11-11 20:36:05.000000000 +0100
++++ b/pkg/wuffs/build.zig	2026-11-17 04:40:18.645939243 +0100
 @@ -64,7 +64,7 @@
  
          // Larger flag set for C file build within module
@@ -55,10 +55,10 @@ diff -ruN a/pkg/wuffs/build.zig b/pkg/wuffs/build.zig
              // Disable ubsan on Windows to avoid undefined __ubsan_handle_*
              // references: Zig's ubsan runtime can't be bundled on Windows
              // (its /exclude-symbols directives break the MSVC linker), so
-diff -ruN a/src/build/SharedDeps.zig b/src/build/SharedDeps.zig
---- a/src/build/SharedDeps.zig	2026-11-06 23:28:06.000000000 +0100
-+++ b/src/build/SharedDeps.zig	2026-11-10 02:27:16.916848100 +0100
-@@ -949,6 +949,12 @@
+diff -ruN libghostty-vt-1.0.1/src/build/SharedDeps.zig libghostty-vt-1.0.1-patched/src/build/SharedDeps.zig
+--- a/src/build/SharedDeps.zig	2026-11-11 20:36:05.000000000 +0100
++++ b/src/build/SharedDeps.zig	2026-11-17 04:40:18.646083515 +0100
+@@ -954,6 +954,12 @@
              b.allocator,
              b.fmt("-DHWY_DISABLED_TARGETS={}", .{HWY_DISABLED_TARGETS}),
          );
@@ -71,7 +71,7 @@ diff -ruN a/src/build/SharedDeps.zig b/src/build/SharedDeps.zig
  
          // MSVC requires explicit std specification otherwise these
          // are guarded, at least on Windows 2025. Doing it unconditionally
-@@ -975,6 +981,10 @@
+@@ -980,6 +986,10 @@
              "-DSIMDUTF_NO_LIBCXX",
          );
  
